@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final _auth = FirebaseAuth.instance;
@@ -15,8 +17,23 @@ class AuthService {
   Future<void> login(String email, String password) =>
       _auth.signInWithEmailAndPassword(email: email, password: password);
 
+  bool _gsiReady = false;
+
   Future<void> signInWithGoogle() async {
-    final cred = await _auth.signInWithProvider(GoogleAuthProvider());
+    final UserCredential cred;
+    if (kIsWeb) {
+      cred = await _auth.signInWithPopup(GoogleAuthProvider());
+    } else {
+      if (!_gsiReady) {
+        await GoogleSignIn.instance.initialize();
+        _gsiReady = true;
+      }
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+      cred = await _auth.signInWithCredential(
+        GoogleAuthProvider.credential(idToken: idToken),
+      );
+    }
     if (cred.additionalUserInfo?.isNewUser ?? false) {
       await _createProfile(cred.user!, cred.user!.displayName ?? '');
     }
@@ -34,6 +51,11 @@ class AuthService {
       });
 
   static String message(Object e) {
+    if (e is GoogleSignInException &&
+        e.code == GoogleSignInExceptionCode.canceled) {
+      return '';
+    }
+
     if (e is FirebaseAuthException) {
       switch (e.code) {
         case 'invalid-credential':
@@ -52,6 +74,11 @@ class AuthService {
           return 'Too many attempts. Try again later.';
         case 'canceled':
         case 'web-context-canceled':
+          return '';
+        case 'canceled':
+        case 'web-context-canceled':
+        case 'popup-closed-by-user':
+        case 'cancelled-popup-request':
           return '';
       }
       return e.message ?? 'Something went wrong.';
