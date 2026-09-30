@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'data.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'auth_actions.dart';
 
 String peso(double v) => '₱${NumberFormat('#,##0.00').format(v)}';
 
@@ -67,7 +68,7 @@ class ShopAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           tooltip: 'Sign out',
           icon: const Icon(Icons.logout),
-          onPressed: () => FirebaseAuth.instance.signOut(),
+          onPressed: () => confirmSignOut(context),
         ),
       ],
     );
@@ -309,15 +310,16 @@ class StatusStepper extends StatelessWidget {
   final OrderStatus status;
   final bool inverted;
   const StatusStepper(this.status, {this.inverted = false, super.key});
-  static const _labels = ['Pending', 'Accepted', 'Printing', 'Ready', 'Done'];
+  static const _labels = ['Pending', 'Accepted', 'Ready', 'Done'];
 
   @override
   Widget build(BuildContext context) {
     final idx = OrderStatus.flow.indexOf(status);
+    final n = OrderStatus.flow.length;
     final on = inverted ? Colors.white : Colors.black;
     final off = inverted ? Colors.white38 : Colors.black26;
     return Row(children: [
-      for (var i = 0; i < 5; i++)
+      for (var i = 0; i < n; i++)
         Expanded(
           child: Column(children: [
             Row(children: [
@@ -342,8 +344,9 @@ class StatusStepper extends StatelessWidget {
               Expanded(
                   child: Container(
                       height: 2,
-                      color:
-                          i == 4 ? Colors.transparent : (i < idx ? on : off))),
+                      color: i == n - 1
+                          ? Colors.transparent
+                          : (i < idx ? on : off))),
             ]),
             const SizedBox(height: 6),
             Text(_labels[i],
@@ -356,6 +359,14 @@ class StatusStepper extends StatelessWidget {
     ]);
   }
 }
+
+String statusHint(OrderStatus s) => switch (s) {
+      OrderStatus.pending => 'Waiting for the shop to accept your order.',
+      OrderStatus.accepted => 'Your document is being printed.',
+      OrderStatus.ready => 'Ready for pickup at the counter.',
+      OrderStatus.done => 'Completed.',
+      OrderStatus.rejected => 'This order was declined.',
+    };
 
 class SectionTitle extends StatelessWidget {
   final String text;
