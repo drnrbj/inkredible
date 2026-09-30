@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'admin.dart';
 import 'customer.dart';
+import 'loading_page.dart';
 
 class RoleRouter extends StatelessWidget {
   final String uid;
@@ -14,8 +15,7 @@ class RoleRouter extends StatelessWidget {
       future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+          return const LoadingPage(message: 'Loading your account...');
         }
         if (snap.hasError) {
           return Scaffold(
