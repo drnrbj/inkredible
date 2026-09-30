@@ -27,10 +27,13 @@ class _AdminShellState extends State<AdminShell> {
           selectedIndex: tab,
           onDestinationSelected: (i) => setState(() => tab = i),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Today'),
-            NavigationDestination(icon: Icon(Icons.inbox_outlined), label: 'Orders'),
+            NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined), label: 'Today'),
+            NavigationDestination(
+                icon: Icon(Icons.inbox_outlined), label: 'Orders'),
             NavigationDestination(icon: Icon(Icons.tune), label: 'Services'),
-            NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Analytics'),
+            NavigationDestination(
+                icon: Icon(Icons.bar_chart), label: 'Analytics'),
           ],
         ),
       );
@@ -55,14 +58,20 @@ class OverviewTab extends StatelessWidget {
                         color: dark ? Colors.white : Colors.black)),
                 Text(label,
                     style: TextStyle(
-                        fontSize: 12, color: dark ? Colors.white70 : Colors.black54)),
+                        fontSize: 12,
+                        color: dark ? Colors.white70 : Colors.black54)),
               ]),
         );
     return ListView(padding: const EdgeInsets.all(20), children: [
       Text(DateFormat('EEEE, MMM d').format(DateTime.now()),
           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
       const SizedBox(height: 4),
-      Text(s.shopOpen ? 'Shop is open' : (s.acceptingOrders ? 'Outside opening hours' : 'New orders paused'),
+      Text(
+          s.shopOpen
+              ? 'Shop is open'
+              : (s.acceptingOrders
+                  ? 'Outside opening hours'
+                  : 'New orders paused'),
           style: const TextStyle(color: Colors.black54)),
       const SizedBox(height: 16),
       GridView.count(
@@ -74,11 +83,11 @@ class OverviewTab extends StatelessWidget {
         childAspectRatio: 1.6,
         children: [
           tile('New (Pending)', '${s.count(OrderStatus.pending)}', dark: true),
-          tile('Printing', '${s.count(OrderStatus.printing)}'),
+          tile('Accepted', '${s.count(OrderStatus.accepted)}'),
           tile('Ready for pickup', '${s.count(OrderStatus.ready)}'),
           tile('Completed today', '${s.completedToday}'),
           tile("Today's sales", peso(s.todaySales)),
-          tile('Accepted', '${s.count(OrderStatus.accepted)}'),
+          tile('Rejected today', '${s.rejectedToday}'),
         ],
       ),
       const SizedBox(height: 24),
@@ -99,9 +108,8 @@ class _OrdersTabState extends State<OrdersTab> {
   static const filters = [
     OrderStatus.pending,
     OrderStatus.accepted,
-    OrderStatus.printing,
     OrderStatus.ready,
-    OrderStatus.completed,
+    OrderStatus.done,
     OrderStatus.rejected,
   ];
   int sel = 0; // 0 = all active
@@ -128,7 +136,8 @@ class _OrdersTabState extends State<OrdersTab> {
           separatorBuilder: (_, __) => const SizedBox(width: 8),
           itemBuilder: (_, i) => ChoiceChip(
             label: Text(labels[i],
-                style: TextStyle(color: sel == i ? Colors.white : Colors.black)),
+                style:
+                    TextStyle(color: sel == i ? Colors.white : Colors.black)),
             selected: sel == i,
             onSelected: (_) => setState(() => sel = i),
           ),
@@ -137,7 +146,8 @@ class _OrdersTabState extends State<OrdersTab> {
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
         child: Row(children: [
-          Text('${list.length} orders', style: const TextStyle(color: Colors.black54)),
+          Text('${list.length} orders',
+              style: const TextStyle(color: Colors.black54)),
           const Spacer(),
           SegmentedButton<bool>(
             showSelectedIcon: false,
@@ -191,9 +201,11 @@ class _QueueCard extends StatelessWidget {
             style: const TextStyle(color: Colors.black54, fontSize: 12)),
         const SizedBox(height: 8),
         Row(children: [
-          Text(peso(o.price), style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(peso(o.price),
+              style: const TextStyle(fontWeight: FontWeight.w800)),
           const Spacer(),
-          Text('Received ${ago(o.createdAt)} • Due ${DateFormat('h:mm a').format(o.pickup)}',
+          Text(
+              'Received ${ago(o.createdAt)} • Due ${DateFormat('h:mm a').format(o.pickup)}',
               style: const TextStyle(color: Colors.black54, fontSize: 11)),
         ]),
         if (o.status == OrderStatus.pending) ...[
@@ -254,19 +266,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             const Icon(Icons.picture_as_pdf_outlined, size: 40),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(o.fileName,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text('${o.pages} pages · ${(o.sizeKb / 1024).toStringAsFixed(1)} MB',
-                    style: const TextStyle(color: Colors.black54, fontSize: 12)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(o.fileName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                        '${o.pages} pages · ${(o.sizeKb / 1024).toStringAsFixed(1)} MB',
+                        style: const TextStyle(
+                            color: Colors.black54, fontSize: 12)),
+                  ]),
             ),
             OutlinedButton(
               style: compact,
               // TODO: open the Firebase Storage download URL (url_launcher).
               onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Connect Firebase Storage to open the file'))),
+                  const SnackBar(
+                      content:
+                          Text('Connect Firebase Storage to open the file'))),
               child: const Text('Open'),
             ),
           ]),
@@ -300,7 +318,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         else ...[
           InputDecorator(
             decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<OrderStatus>(
                 isExpanded: true,
@@ -359,21 +378,28 @@ class ServicesTab extends StatelessWidget {
           backgroundColor: Colors.white,
           title: Text(svc == null ? 'Add service' : 'Edit service'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Name')),
             const SizedBox(height: 12),
             if (svc == null)
               InputDecorator(
                 decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     isExpanded: true,
                     dropdownColor: Colors.white,
                     value: cat,
                     items: const [
-                      DropdownMenuItem(value: 'paper', child: Text('Paper size (per page)')),
-                      DropdownMenuItem(value: 'color', child: Text('Color mode (per page)')),
-                      DropdownMenuItem(value: 'finish', child: Text('Binding / lamination (per copy)')),
+                      DropdownMenuItem(
+                          value: 'paper', child: Text('Paper size (per page)')),
+                      DropdownMenuItem(
+                          value: 'color', child: Text('Color mode (per page)')),
+                      DropdownMenuItem(
+                          value: 'finish',
+                          child: Text('Binding / lamination (per copy)')),
                     ],
                     onChanged: (v) => setD(() => cat = v ?? cat),
                   ),
@@ -382,14 +408,16 @@ class ServicesTab extends StatelessWidget {
             if (svc == null) const SizedBox(height: 12),
             TextField(
               controller: price,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Price (₱)'),
             ),
           ]),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dc, false),
-                child: const Text('Cancel', style: TextStyle(color: Colors.black))),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Colors.black))),
             FilledButton(
                 style: compact,
                 onPressed: () => Navigator.pop(dc, true),
@@ -429,57 +457,65 @@ class ServicesTab extends StatelessWidget {
         icon: const Icon(Icons.add),
         label: const Text('Add'),
       ),
-      body: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), children: [
-        AppCard(
-          child: SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Accept new orders',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: const Text('Turn off when the shop is busy or closed'),
-            value: s.acceptingOrders,
-            onChanged: s.setAccepting,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-              'Price = pages × copies × (paper + color rate) − 10% if double-sided, plus finish fee × copies.',
-              style: TextStyle(color: Colors.black54, fontSize: 12)),
-        ),
-        for (final e in sections.entries) ...[
-          const SizedBox(height: 12),
-          SectionTitle(e.value),
-          for (final svc in s.services.where((x) => x.category == e.key))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: AppCard(
-                padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(svc.name,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: svc.enabled ? Colors.black : Colors.black38)),
-                      Text('${peso(svc.price)} ${svc.unit}',
-                          style: const TextStyle(color: Colors.black54, fontSize: 12)),
-                    ]),
-                  ),
-                  IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      onPressed: () => _edit(context, s, svc)),
-                  Switch(
-                      value: svc.enabled,
-                      onChanged: (v) {
-                        svc.enabled = v;
-                        s.touch();
-                      }),
-                ]),
+      body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          children: [
+            AppCard(
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Accept new orders',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle:
+                    const Text('Turn off when the shop is busy or closed'),
+                value: s.acceptingOrders,
+                onChanged: s.setAccepting,
               ),
             ),
-        ],
-      ]),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                  'Price = pages × copies × (paper + color rate) − 10% if double-sided, plus finish fee × copies.',
+                  style: TextStyle(color: Colors.black54, fontSize: 12)),
+            ),
+            for (final e in sections.entries) ...[
+              const SizedBox(height: 12),
+              SectionTitle(e.value),
+              for (final svc in s.services.where((x) => x.category == e.key))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: AppCard(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                    child: Row(children: [
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(svc.name,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: svc.enabled
+                                          ? Colors.black
+                                          : Colors.black38)),
+                              Text('${peso(svc.price)} ${svc.unit}',
+                                  style: const TextStyle(
+                                      color: Colors.black54, fontSize: 12)),
+                            ]),
+                      ),
+                      IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => _edit(context, s, svc)),
+                      Switch(
+                          value: svc.enabled,
+                          onChanged: (v) {
+                            svc.enabled = v;
+                            s.touch();
+                          }),
+                    ]),
+                  ),
+                ),
+            ],
+          ]),
     );
   }
 }
@@ -518,7 +554,8 @@ class SalesChart extends StatelessWidget {
         touchTooltipData: BarTouchTooltipData(
           getTooltipItem: (g, gi, rod, ri) => BarTooltipItem(
               peso(rod.toY),
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w700)),
         ),
       ),
       barGroups: [
@@ -544,7 +581,8 @@ class AnalyticsTab extends StatefulWidget {
 class _AnalyticsTabState extends State<AnalyticsTab> {
   int period = 0;
 
-  static String _hour(int h) => h == 0 ? '12a' : (h < 12 ? '${h}a' : (h == 12 ? '12p' : '${h - 12}p'));
+  static String _hour(int h) =>
+      h == 0 ? '12a' : (h < 12 ? '${h}a' : (h == 12 ? '12p' : '${h - 12}p'));
 
   @override
   Widget build(BuildContext context) {
@@ -569,7 +607,9 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
         onSelectionChanged: (v) => setState(() => period = v.first),
       ),
       const SizedBox(height: 20),
-      SectionTitle('Sales', trailing: Text(peso(total), style: const TextStyle(fontWeight: FontWeight.w800))),
+      SectionTitle('Sales',
+          trailing: Text(peso(total),
+              style: const TextStyle(fontWeight: FontWeight.w800))),
       AppCard(child: SizedBox(height: 200, child: SalesChart(sales))),
       const SizedBox(height: 28),
       const SectionTitle('Busy hours (orders received)'),
@@ -593,13 +633,17 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                   reservedSize: 26,
                   getTitlesWidget: (v, m) => Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(_hour(v.toInt()), style: const TextStyle(fontSize: 10))),
+                      child: Text(_hour(v.toInt()),
+                          style: const TextStyle(fontSize: 10))),
                 ),
               ),
             ),
             lineBarsData: [
               LineChartBarData(
-                spots: [for (var h = 8; h <= 19; h++) FlSpot(h.toDouble(), hourly[h].toDouble())],
+                spots: [
+                  for (var h = 8; h <= 19; h++)
+                    FlSpot(h.toDouble(), hourly[h].toDouble())
+                ],
                 isCurved: true,
                 color: Colors.black,
                 barWidth: 2.5,
@@ -654,19 +698,26 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                     color: Colors.black,
                     radius: 28,
                     title: '$done',
-                    titleStyle: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                    titleStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700)),
                 PieChartSectionData(
                     value: cancelled.toDouble(),
                     color: Colors.black26,
                     radius: 28,
                     title: '$cancelled',
-                    titleStyle: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w700)),
+                    titleStyle: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700)),
               ],
             )),
           ),
           const SizedBox(width: 20),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(width: 12, height: 12, color: Colors.black),
                 const SizedBox(width: 8),
@@ -698,7 +749,8 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                   radius: 14,
                   backgroundColor: Colors.black,
                   child: Text('${i + 1}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12))),
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 12))),
               title: Text(s.topCustomers[i].key),
               trailing: Text(peso(s.topCustomers[i].value),
                   style: const TextStyle(fontWeight: FontWeight.w700)),

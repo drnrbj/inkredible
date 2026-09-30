@@ -15,14 +15,13 @@ class Session extends ChangeNotifier {
 enum OrderStatus {
   pending('Pending'),
   accepted('Accepted'),
-  printing('Printing'),
-  ready('Ready for Pickup'),
-  completed('Completed'),
+  ready('Ready'),
+  done('Done'),
   rejected('Rejected');
 
   final String label;
   const OrderStatus(this.label);
-  static const flow = [pending, accepted, printing, ready, completed];
+  static const flow = [pending, accepted, ready, done];
   OrderStatus? get next {
     final i = flow.indexOf(this);
     return (i >= 0 && i < flow.length - 1) ? flow[i + 1] : null;
@@ -81,7 +80,7 @@ class Order {
     this.rejectReason,
   });
   bool get isActive =>
-      status != OrderStatus.completed && status != OrderStatus.rejected;
+    status != OrderStatus.done && status != OrderStatus.rejected;
 }
 
 class AppNotification {
@@ -278,7 +277,7 @@ class ShopStore extends ChangeNotifier {
 
   // ---------- analytics ----------
   Iterable<Order> get _done =>
-      orders.where((o) => o.status == OrderStatus.completed);
+    orders.where((o) => o.status == OrderStatus.done);
 
   static bool sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -291,6 +290,10 @@ class ShopStore extends ChangeNotifier {
 
   int get completedToday =>
       _done.where((o) => sameDay(o.createdAt, DateTime.now())).length;
+
+  int get rejectedToday => orders
+    .where((o) => o.status == OrderStatus.rejected && sameDay(o.createdAt, DateTime.now()))
+    .length;
 
   int get completedTotal => _done.length;
   int get cancelledTotal => count(OrderStatus.rejected);
@@ -389,7 +392,7 @@ class ShopStore extends ChangeNotifier {
         'Thesis_Draft_v3.pdf',
         48,
         PrintSpec(duplex: true, copies: 2, finish: 'Spiral'),
-        OrderStatus.printing,
+        OrderStatus.accepted,
         90);
     _add('1042', 'Jay', 'Assignment_4.pdf', 12, PrintSpec(paper: 'Short'),
         OrderStatus.ready, 200);
@@ -411,14 +414,14 @@ class ShopStore extends ChangeNotifier {
         'Presentation.pdf',
         20,
         PrintSpec(color: true, finish: 'Lamination'),
-        OrderStatus.printing,
+        OrderStatus.accepted,
         120);
     _add('1047', 'Paolo Cruz', 'Receipts_Q3.pdf', 5, PrintSpec(),
         OrderStatus.ready, 240);
     _add('1048', 'Liza Tan', 'Assignment_2.pdf', 10, PrintSpec(copies: 2),
-        OrderStatus.completed, 300);
+        OrderStatus.done, 300);
     _add('1049', 'Miguel Ramos', 'Poster_Draft.pdf', 1,
-        PrintSpec(paper: 'A3', color: true), OrderStatus.completed, 330);
+        PrintSpec(paper: 'A3', color: true), OrderStatus.done, 330);
 
     final r = Random(7);
     const names = [
@@ -464,7 +467,7 @@ class ShopStore extends ChangeNotifier {
         pages: pages,
         spec: spec,
         price: price(spec, pages),
-        status: rejected ? OrderStatus.rejected : OrderStatus.completed,
+        status: rejected ? OrderStatus.rejected : OrderStatus.done,
         createdAt: t,
         pickup: t.add(const Duration(hours: 2)),
         rejectReason: rejected ? 'File unreadable' : null,
@@ -486,7 +489,7 @@ class ShopStore extends ChangeNotifier {
         body: 'Thesis_Draft_v3.pdf',
         time: n.subtract(const Duration(minutes: 40)),
         orderId: '1041',
-        status: OrderStatus.printing,
+        status: OrderStatus.accepted,
       ),
       AppNotification(
         id: 's3',
@@ -494,7 +497,7 @@ class ShopStore extends ChangeNotifier {
         body: 'Assignment_2.pdf',
         time: n.subtract(const Duration(days: 1, hours: 2)),
         orderId: '1048',
-        status: OrderStatus.completed,
+        status: OrderStatus.done,
         read: true,
       ),
     ]);
