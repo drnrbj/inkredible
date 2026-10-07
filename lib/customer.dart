@@ -23,12 +23,13 @@ class _CustomerShellState extends State<CustomerShell> {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
     final name = (user?.displayName?.trim().isNotEmpty ?? false)
-        ? user!.displayName!.trim() : 'Customer';
+        ? user!.displayName!.trim()
+        : 'Customer';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<ShopStore>().setCustomerName(name);
     });
   }
-  
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: const ShopAppBar(),
@@ -394,9 +395,19 @@ class NewOrderPage extends StatefulWidget {
   State<NewOrderPage> createState() => _NewOrderPageState();
 }
 
+class _PickedFile {
+  String name;
+  int sizeKb;
+  int totalPages;
+  _PickedFile(
+      {required this.name, required this.sizeKb, required this.totalPages});
+}
+
 class _NewOrderPageState extends State<NewOrderPage> {
-  String? fileName;
-  int sizeKb = 0, pages = 1;
+  static const maxFiles = 3;
+  final List<_PickedFile> picked = [];
+  bool printAll = true;
+  final pageRange = TextEditingController();
   String? error;
   late PrintSpec spec;
   final notes = TextEditingController();
@@ -407,9 +418,12 @@ class _NewOrderPageState extends State<NewOrderPage> {
     final f = widget.from;
     spec = f?.spec.copy() ?? widget.presetSpec?.copy() ?? PrintSpec();
     if (f != null) {
-      fileName = f.fileName;
-      sizeKb = f.sizeKb;
-      pages = f.pages;
+      for (final file in f.files) {
+        picked.add(_PickedFile(
+            name: file.name, sizeKb: file.sizeKb, totalPages: file.totalPages));
+      }
+      printAll = f.printAll;
+      pageRange.text = f.pageRange ?? '';
       notes.text = f.notes;
     }
   }
@@ -417,40 +431,47 @@ class _NewOrderPageState extends State<NewOrderPage> {
   @override
   void dispose() {
     notes.dispose();
+    pageRange.dispose();
     super.dispose();
   }
 
-  Future<void> pick() async {
-    final f = await FilePicker.pickFile(
+  Future<void> pickFiles() async {
+    final remaining = maxFiles - picked.length;
+    if (remaining <= 0) return;
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
+    if (result.isEmpty) return;
 
-    if (f == null) return;
-
-    final fileSize = f.lengthSync() ?? await f.length() ?? 0;
-
-    if (fileSize > ShopStore.maxFileMb * 1024 * 1024) {
-      setState(() =>
-          error = 'File is ${(fileSize / 1048576).toStringAsFixed(1)} MB. '
-              'Max is ${ShopStore.maxFileMb} MB.');
-      return;
+    for (final f in result.take(remaining)) {
+      final bytes = f.lengthSync() ?? await f.length() ?? 0;
+      if (bytes > ShopStore.maxFileMb * 1024 * 1024) {
+        setState(() =>
+            error = '${f.name} is ${(bytes / 1048576).toStringAsFixed(1)} MB. '
+                'Max is ${ShopStore.maxFileMb} MB.');
+        continue;
+      }
+      final kb = max(1, (bytes / 1024).ceil());
+      setState(() {
+        error = null;
+        picked.add(_PickedFile(
+            name: f.name,
+            sizeKb: kb,
+            totalPages: max(1, min(500, (kb / 60).round()))));
+      });
     }
-
-    setState(() {
-      error = null;
-      fileName = f.name;
-      sizeKb = max(1, (fileSize / 1024).ceil());
-
-      // Rough guess; the customer can correct it.
-      pages = max(1, min(500, (sizeKb / 60).round()));
-    });
+    if (result.length > remaining) {
+      setState(() => error = 'Only $maxFiles files allowed per order.');
+    }
   }
+
+  void removeFile(int i) => setState(() => picked.removeAt(i));
 
   @override
   Widget build(BuildContext context) {
     final s = context.watch<ShopStore>();
-    final total = s.price(spec, pages);
+    final total = picked.fold(0.0, (a, f) => a + s.price(spec, f.totalPages));
     return Scaffold(
       appBar: AppBar(
           title: Text(widget.from == null
@@ -475,17 +496,19 @@ class _NewOrderPageState extends State<NewOrderPage> {
             const SizedBox(width: 20),
             Expanded(
               child: FilledButton(
-                onPressed: fileName == null
+                onPressed: picked.isEmpty
                     ? null
                     : () => Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (_) => ConfirmPage(
-                                fileName: fileName!,
-                                sizeKb: sizeKb,
-                                pages: pages,
-                                spec: spec.copy(),
-                                notes: notes.text.trim()))),
+                                  files: List.of(picked),
+                                  spec: spec.copy(),
+                                  printAll: printAll,
+                                  pageRange:
+                                      printAll ? null : pageRange.text.trim(),
+                                  notes: notes.text.trim(),
+                                ))),
                 child: const Text('Review order'),
               ),
             ),
@@ -493,43 +516,99 @@ class _NewOrderPageState extends State<NewOrderPage> {
         ),
       ),
       body: ListView(padding: const EdgeInsets.all(20), children: [
-        const SectionTitle('1. Document'),
-        AppCard(
-          onTap: pick,
-          child: Row(children: [
-            const Icon(Icons.upload_file, size: 32),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(fileName ?? 'Upload a PDF',
+        if (widget.presetLabel != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AppCard(
+                dark: true,
+                child: Row(children: [
+                  const Icon(Icons.bolt, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: Text(
+                          'Using "${widget.presetLabel}" — options pre-filled, adjust anytime.',
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12.5))),
+                ])),
+          ),
+        SectionTitle('1. Documents (${picked.length}/$maxFiles)'),
+        for (var i = 0; i < picked.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AppCard(
+                child: Row(children: [
+              const Icon(Icons.picture_as_pdf_outlined, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(picked[i].name,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                        fileName == null
-                            ? 'PDF only · max ${ShopStore.maxFileMb} MB'
-                            : '${(sizeKb / 1024).toStringAsFixed(1)} MB · tap to replace',
+                    Text('${(picked[i].sizeKb / 1024).toStringAsFixed(1)} MB',
                         style: const TextStyle(
-                            color: Colors.black54, fontSize: 12)),
-                  ]),
-            ),
-          ]),
-        ),
+                            color: Colors.black54, fontSize: 11.5)),
+                  ])),
+              SizedBox(
+                  width: 92,
+                  child: TextFormField(
+                    initialValue: '${picked[i].totalPages}',
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Pages', isDense: true),
+                    onChanged: (v) {
+                      final n = int.tryParse(v);
+                      if (n != null && n > 0)
+                        setState(() => picked[i].totalPages = n);
+                    },
+                  )),
+              IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => removeFile(i)),
+            ])),
+          ),
+        if (picked.length < maxFiles)
+          AppCard(
+              onTap: pickFiles,
+              child: Row(children: [
+                const Icon(Icons.upload_file, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                    picked.isEmpty
+                        ? 'Upload PDF (up to $maxFiles files)'
+                        : 'Add another file',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ])),
         if (error != null)
           Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(error!,
                   style: const TextStyle(fontWeight: FontWeight.w600))),
         const SizedBox(height: 24),
-        const SectionTitle('2. Print options'),
-        _Stepper(
-            label: 'Pages (adjust if needed)',
-            value: pages,
-            min: 1,
-            max: 500,
-            onChanged: (v) => setState(() => pages = v)),
-        const SizedBox(height: 14),
+        const SectionTitle('2. What to print'),
+        SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: true, label: Text('Print everything')),
+                ButtonSegment(value: false, label: Text('Specific pages')),
+              ],
+              selected: {printAll},
+              onSelectionChanged: (v) => setState(() => printAll = v.first),
+            )),
+        if (!printAll) ...[
+          const SizedBox(height: 10),
+          TextField(
+              controller: pageRange,
+              decoration: const InputDecoration(
+                  labelText: 'Pages to print',
+                  hintText: 'e.g. 1–10, 15, 20–22')),
+        ],
+        const SizedBox(height: 24),
+        const SectionTitle('3. Print options'),
         _Drop(
             label: 'Paper size',
             value: spec.paper,
@@ -537,25 +616,23 @@ class _NewOrderPageState extends State<NewOrderPage> {
             onChanged: (v) => setState(() => spec.paper = v)),
         const SizedBox(height: 14),
         SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<bool>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: false, label: Text('Black & White')),
-              ButtonSegment(value: true, label: Text('Color')),
-            ],
-            selected: {spec.color},
-            onSelectionChanged: (v) => setState(() => spec.color = v.first),
-          ),
-        ),
+            width: double.infinity,
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: false, label: Text('Black & White')),
+                ButtonSegment(value: true, label: Text('Color')),
+              ],
+              selected: {spec.color},
+              onSelectionChanged: (v) => setState(() => spec.color = v.first),
+            )),
         const SizedBox(height: 6),
         SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Double-sided'),
-          subtitle: const Text('10% off page cost'),
-          value: spec.duplex,
-          onChanged: (v) => setState(() => spec.duplex = v),
-        ),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Double-sided'),
+            subtitle: const Text('10% off page cost'),
+            value: spec.duplex,
+            onChanged: (v) => setState(() => spec.duplex = v)),
         _Stepper(
             label: 'Copies',
             value: spec.copies,
@@ -569,13 +646,12 @@ class _NewOrderPageState extends State<NewOrderPage> {
             items: s.options('finish'),
             onChanged: (v) => setState(() => spec.finish = v)),
         const SizedBox(height: 24),
-        const SectionTitle('3. Notes for the shop'),
+        const SectionTitle('4. Notes for the shop'),
         TextField(
-          controller: notes,
-          maxLines: 3,
-          decoration:
-              const InputDecoration(hintText: 'e.g. Print pages 1–10 only'),
-        ),
+            controller: notes,
+            maxLines: 3,
+            decoration: const InputDecoration(
+                hintText: 'Any other instructions for the shop')),
         const SizedBox(height: 24),
       ]),
     );
@@ -644,33 +720,43 @@ class _Stepper extends StatelessWidget {
 
 // ---------------------------------------------------------------- CONFIRM
 class ConfirmPage extends StatelessWidget {
-  final String fileName, notes;
-  final int sizeKb, pages;
+  final List<_PickedFile> files;
   final PrintSpec spec;
-  const ConfirmPage(
-      {super.key,
-      required this.fileName,
-      required this.sizeKb,
-      required this.pages,
-      required this.spec,
-      required this.notes});
+  final bool printAll;
+  final String? pageRange;
+  final String notes;
+  const ConfirmPage({
+    super.key,
+    required this.files,
+    required this.spec,
+    required this.printAll,
+    this.pageRange,
+    required this.notes,
+  });
 
   @override
   Widget build(BuildContext context) {
     final s = context.read<ShopStore>();
-    final total = s.price(spec, pages);
+    final total = files.fold(0.0, (a, f) => a + s.price(spec, f.totalPages));
     return Scaffold(
       appBar: AppBar(title: const Text('Confirm order')),
       body: ListView(padding: const EdgeInsets.all(20), children: [
         AppCard(
           child: Column(children: [
-            KV('File', fileName),
-            KV('Pages', '$pages'),
+            for (final f in files)
+              KV('File', '${f.name} (${f.totalPages} pages)'),
             KV('Paper', spec.paper),
             KV('Color', spec.color ? 'Color' : 'Black & White'),
             KV('Sides', spec.duplex ? 'Double-sided' : 'Single-sided'),
             KV('Copies', '${spec.copies}'),
             KV('Finish', spec.finish),
+            KV(
+                'Print scope',
+                printAll
+                    ? 'All pages'
+                    : (pageRange?.isEmpty ?? true
+                        ? 'Specific (see notes)'
+                        : pageRange!)),
             if (notes.isNotEmpty) KV('Notes', notes),
           ]),
         ),
@@ -697,11 +783,16 @@ class ConfirmPage extends StatelessWidget {
           onPressed: () {
             final messenger = ScaffoldMessenger.of(context);
             final o = s.placeOrder(
-                fileName: fileName,
-                sizeKb: sizeKb,
-                pages: pages,
-                spec: spec,
-                notes: notes);
+              files: [
+                for (final f in files)
+                  OrderFile(
+                      name: f.name, sizeKb: f.sizeKb, totalPages: f.totalPages)
+              ],
+              spec: spec,
+              printAll: printAll,
+              pageRange: pageRange,
+              notes: notes,
+            );
             Navigator.popUntil(context, (r) => r.isFirst);
             messenger.showSnackBar(SnackBar(
                 backgroundColor: Colors.black,

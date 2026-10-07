@@ -197,7 +197,7 @@ class _QueueCard extends StatelessWidget {
         ]),
         const SizedBox(height: 6),
         Text(o.fileName, overflow: TextOverflow.ellipsis),
-        Text('${o.pages} pages • ${o.spec.summary}',
+        Text('${o.totalPages} pages • ${o.spec.summary}',
             style: const TextStyle(color: Colors.black54, fontSize: 12)),
         const SizedBox(height: 8),
         Row(children: [
@@ -273,7 +273,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
                     Text(
-                        '${o.pages} pages · ${(o.sizeKb / 1024).toStringAsFixed(1)} MB',
+                        '${o.totalPages} pages · ${(o.sizeKb / 1024).toStringAsFixed(1)} MB',
                         style: const TextStyle(
                             color: Colors.black54, fontSize: 12)),
                   ]),

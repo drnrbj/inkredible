@@ -53,11 +53,21 @@ class PrintSpec {
       '${finish == 'None' ? '' : ' • $finish'}';
 }
 
+class OrderFile {
+  final String name;
+  final int sizeKb;
+  final int totalPages;
+  const OrderFile(
+      {required this.name, required this.sizeKb, required this.totalPages});
+}
+
 class Order {
-  final String id, customer, phone, fileName;
-  final int sizeKb, pages;
+  final String id, customer, phone;
+  final List<OrderFile> files;
   final PrintSpec spec;
   final double price;
+  final bool printAll;
+  final String? pageRange;
   OrderStatus status;
   final DateTime createdAt;
   DateTime pickup;
@@ -67,11 +77,11 @@ class Order {
     required this.id,
     required this.customer,
     required this.phone,
-    required this.fileName,
-    required this.sizeKb,
-    required this.pages,
+    required this.files,
     required this.spec,
     required this.price,
+    required this.printAll,
+    this.pageRange,
     required this.status,
     required this.createdAt,
     required this.pickup,
@@ -80,7 +90,11 @@ class Order {
     this.rejectReason,
   });
   bool get isActive =>
-    status != OrderStatus.done && status != OrderStatus.rejected;
+      status != OrderStatus.done && status != OrderStatus.rejected;
+  String get fileName =>
+      files.length == 1 ? files.first.name : '${files.length} files';
+  int get totalPages => files.fold(0, (a, f) => a + f.totalPages);
+  int get sizeKb => files.fold(0, (a, f) => a + f.sizeKb);
 }
 
 class AppNotification {
@@ -191,30 +205,30 @@ class ShopStore extends ChangeNotifier {
       orders.where((o) => o.customer == customerName).toList();
 
   Order placeOrder({
-    required String fileName,
-    required int sizeKb,
-    required int pages,
+    required List<OrderFile> files,
     required PrintSpec spec,
+    required bool printAll,
+    String? pageRange,
     required String notes,
   }) {
     final now = DateTime.now();
+    final total = files.fold(0.0, (a, f) => a + price(spec, f.totalPages));
     final o = Order(
       id: '${++_seq}',
       customer: customerName,
       phone: '0917 123 4567',
-      fileName: fileName,
-      sizeKb: sizeKb,
-      pages: pages,
+      files: files,
       spec: spec,
-      price: price(spec, pages),
+      price: total,
+      printAll: printAll,
+      pageRange: printAll ? null : pageRange,
       status: OrderStatus.pending,
       createdAt: now,
       pickup: now.add(const Duration(hours: 2)),
       notes: notes,
     );
     orders.insert(0, o);
-    _push('New order #${o.id}',
-        body: '${o.customer} · ${o.fileName}', order: o);
+    _push('New order #${o.id} from ${o.customer}');
     notifyListeners();
     return o;
   }
@@ -284,7 +298,7 @@ class ShopStore extends ChangeNotifier {
 
   // ---------- analytics ----------
   Iterable<Order> get _done =>
-    orders.where((o) => o.status == OrderStatus.done);
+      orders.where((o) => o.status == OrderStatus.done);
 
   static bool sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -299,8 +313,10 @@ class ShopStore extends ChangeNotifier {
       _done.where((o) => sameDay(o.createdAt, DateTime.now())).length;
 
   int get rejectedToday => orders
-    .where((o) => o.status == OrderStatus.rejected && sameDay(o.createdAt, DateTime.now()))
-    .length;
+      .where((o) =>
+          o.status == OrderStatus.rejected &&
+          sameDay(o.createdAt, DateTime.now()))
+      .length;
 
   int get completedTotal => _done.length;
   int get cancelledTotal => count(OrderStatus.rejected);
@@ -381,11 +397,10 @@ class ShopStore extends ChangeNotifier {
       id: id,
       customer: cust,
       phone: '09${17 + id.hashCode % 8} 555 ${1000 + id.hashCode.abs() % 9000}',
-      fileName: file,
-      sizeKb: pages * 60,
-      pages: pages,
+      files: [OrderFile(name: file, sizeKb: pages * 60, totalPages: pages)],
       spec: spec,
       price: price(spec, pages),
+      printAll: true,
       status: st,
       createdAt: t,
       pickup: t.add(const Duration(hours: 2)),
@@ -462,6 +477,7 @@ class ShopStore extends ChangeNotifier {
         finish: finishes[r.nextInt(5)],
       );
       final pages = 2 + r.nextInt(60);
+      final file = files[r.nextInt(files.length)];
       final t = DateTime(now.year, now.month, now.day - (1 + r.nextInt(180)),
           hour, r.nextInt(60));
       final rejected = r.nextInt(10) == 0;
@@ -469,11 +485,10 @@ class ShopStore extends ChangeNotifier {
         id: '${900 + i}',
         customer: names[r.nextInt(names.length)],
         phone: '0917 555 ${1000 + r.nextInt(9000)}',
-        fileName: files[r.nextInt(files.length)],
-        sizeKb: pages * 60,
-        pages: pages,
+        files: [OrderFile(name: file, sizeKb: pages * 60, totalPages: pages)],
         spec: spec,
         price: price(spec, pages),
+        printAll: true,
         status: rejected ? OrderStatus.rejected : OrderStatus.done,
         createdAt: t,
         pickup: t.add(const Duration(hours: 2)),
