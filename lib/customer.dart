@@ -7,6 +7,7 @@ import 'data.dart';
 import 'widgets.dart';
 import 'customer_services.dart';
 import 'profile_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
@@ -16,6 +17,18 @@ class CustomerShell extends StatefulWidget {
 
 class _CustomerShellState extends State<CustomerShell> {
   int tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    final name = (user?.displayName?.trim().isNotEmpty ?? false)
+        ? user!.displayName!.trim() : 'Customer';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ShopStore>().setCustomerName(name);
+    });
+  }
+  
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: const ShopAppBar(),
