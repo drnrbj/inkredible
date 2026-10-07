@@ -138,6 +138,9 @@ class ShopStore extends ChangeNotifier {
   final orders = <Order>[];
   final notifications = <AppNotification>[];
   int get unread => notifications.where((n) => !n.read).length;
+
+  final adminNotifications = <AppNotification>[];
+  int get adminUnread => adminNotifications.where((n) => !n.read).length;
   int _seq = 1049;
 
   void setCustomerName(String name) {
@@ -228,7 +231,7 @@ class ShopStore extends ChangeNotifier {
       notes: notes,
     );
     orders.insert(0, o);
-    _push('New order #${o.id} from ${o.customer}');
+    _pushAdmin('New order #${o.id} from ${o.customer}', body: o.fileName, order: o);
     notifyListeners();
     return o;
   }
@@ -278,9 +281,31 @@ class ShopStore extends ChangeNotifier {
     );
   }
 
+  void _pushAdmin(String title, {String body = '', Order? order}) {
+    adminNotifications.insert(
+      0,
+      AppNotification(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        title: title,
+        body: body,
+        time: DateTime.now(),
+        orderId: order?.id,
+        status: order?.status,
+      ),
+    );
+  }
+
   void markRead() {
     if (unread == 0) return;
     for (final n in notifications) {
+      n.read = true;
+    }
+    notifyListeners();
+  }
+
+  void markAdminRead() {
+    if (adminUnread == 0) return;
+    for (final n in adminNotifications) {
       n.read = true;
     }
     notifyListeners();
