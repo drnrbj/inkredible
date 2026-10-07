@@ -19,15 +19,23 @@ class _CustomerShellState extends State<CustomerShell> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: const ShopAppBar(),
-        body:
-            IndexedStack(index: tab, children: const [HomeTab(), HistoryTab()]),
+        body: IndexedStack(index: tab, children: const [
+          HomeTab(),
+          CustomerServicesTab(),
+          HistoryTab(),
+          ProfileTab(),
+        ]),
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
           onDestinationSelected: (i) => setState(() => tab = i),
           destinations: const [
             NavigationDestination(
                 icon: Icon(Icons.home_outlined), label: 'Home'),
+            NavigationDestination(
+                icon: Icon(Icons.design_services_outlined), label: 'Services'),
             NavigationDestination(icon: Icon(Icons.history), label: 'History'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline), label: 'Profile'),
           ],
         ),
       );
@@ -216,7 +224,8 @@ class _HistoryTabState extends State<HistoryTab> {
 
     final past = switch (filter) {
       'Done' => allPast.where((o) => o.status == OrderStatus.done).toList(),
-      'Rejected' => allPast.where((o) => o.status == OrderStatus.rejected).toList(),
+      'Rejected' =>
+        allPast.where((o) => o.status == OrderStatus.rejected).toList(),
       _ => allPast,
     };
     final totalSpent = allPast
@@ -225,7 +234,9 @@ class _HistoryTabState extends State<HistoryTab> {
 
     final groups = <String, List<Order>>{};
     for (final o in past) {
-      groups.putIfAbsent(DateFormat('MMMM y').format(o.createdAt), () => []).add(o);
+      groups
+          .putIfAbsent(DateFormat('MMMM y').format(o.createdAt), () => [])
+          .add(o);
     }
 
     return ListView(
@@ -235,20 +246,32 @@ class _HistoryTabState extends State<HistoryTab> {
           dark: true,
           child: Row(children: [
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Total spent', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                Text(peso(totalSpent),
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Total spent',
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(peso(totalSpent),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800)),
+                  ]),
             ),
             Container(width: 1, height: 34, color: Colors.white24),
             const SizedBox(width: 16),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Orders', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                Text('${allPast.length}',
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Orders',
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('${allPast.length}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800)),
+                  ]),
             ),
           ]),
         ),
@@ -271,16 +294,23 @@ class _HistoryTabState extends State<HistoryTab> {
         if (past.isEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 40),
-            child: Center(child: Text('No orders in this filter', style: TextStyle(color: Colors.black54))),
+            child: Center(
+                child: Text('No orders in this filter',
+                    style: TextStyle(color: Colors.black54))),
           ),
         for (final entry in groups.entries) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 10, top: 4),
             child: Text(entry.key,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.black54)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: Colors.black54)),
           ),
           for (final o in entry.value)
-            Padding(padding: const EdgeInsets.only(bottom: 10), child: _HistoryCard(o)),
+            Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _HistoryCard(o)),
         ],
       ],
     );
@@ -297,24 +327,33 @@ class _HistoryCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
       child: Row(children: [
         Container(
-          width: 42, height: 42,
-          decoration: BoxDecoration(color: Colors.black.withOpacity(.05), borderRadius: BorderRadius.circular(10)),
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+              color: Colors.black.withOpacity(.05),
+              borderRadius: BorderRadius.circular(10)),
           child: const Icon(Icons.picture_as_pdf_outlined, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(o.fileName, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(o.fileName,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 13.5)),
             const SizedBox(height: 2),
-            Text('#${o.id} · ${DateFormat('MMM d').format(o.createdAt)} · ${o.spec.summary}',
+            Text(
+                '#${o.id} · ${DateFormat('MMM d').format(o.createdAt)} · ${o.spec.summary}',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Colors.black54, fontSize: 11.5)),
           ]),
         ),
         const SizedBox(width: 6),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(peso(o.price), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+          Text(peso(o.price),
+              style:
+                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
           const SizedBox(height: 4),
           StatusChip(o.status),
         ]),
@@ -322,7 +361,8 @@ class _HistoryCard extends StatelessWidget {
           tooltip: 'Reorder',
           visualDensity: VisualDensity.compact,
           onPressed: s.acceptingOrders
-              ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => NewOrderPage(from: o)))
+              ? () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => NewOrderPage(from: o)))
               : null,
           icon: const Icon(Icons.replay),
         ),
@@ -463,22 +503,6 @@ class _NewOrderPageState extends State<NewOrderPage> {
             ),
           ]),
         ),
-        if (widget.presetLabel != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AppCard(
-              dark: true,
-              child: Row(children: [
-                const Icon(Icons.bolt, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: Text(
-                        'Using "${widget.presetLabel}" — options pre-filled, adjust anytime.',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 12.5))),
-              ]),
-            ),
-          ),
         if (error != null)
           Padding(
               padding: const EdgeInsets.only(top: 8),

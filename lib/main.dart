@@ -143,8 +143,6 @@ class RoleSelectPage extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       letterSpacing: 4)),
               const SizedBox(height: 8),
-              const Text('Print smarter. Skip the line.',
-                  style: TextStyle(color: Colors.black54, fontSize: 16)),
               const Spacer(),
               FilledButton(
                   onPressed: () => session.set(Role.customer),

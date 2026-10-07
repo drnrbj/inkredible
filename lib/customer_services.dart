@@ -34,8 +34,6 @@ class CustomerServicesTab extends StatelessWidget {
     return ListView(padding: const EdgeInsets.all(20), children: [
       const Text('Quick order', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
       const SizedBox(height: 4),
-      const Text("Pick a service — we'll set the print options for you.",
-          style: TextStyle(color: Colors.black54, fontSize: 13)),
       const SizedBox(height: 20),
       for (final p in _presets)
         Padding(

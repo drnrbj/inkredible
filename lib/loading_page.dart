@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Branded loading screen shown while the app checks auth/session state
-/// (on launch) or looks up the signed-in user's role (right after login).
 class LoadingPage extends StatefulWidget {
   final String message;
   const LoadingPage({super.key, this.message = 'Setting things up...'});
@@ -59,7 +57,6 @@ class _LoadingPageState extends State<LoadingPage>
   }
 }
 
-/// Draws a ring with one gap, so rotating it reads as a spinner.
 class _DashPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
