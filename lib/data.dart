@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'push_sender.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum Role { customer, admin }
 
@@ -63,6 +66,7 @@ class OrderFile {
 
 class Order {
   final String id, customer, phone;
+  final String? customerUid;
   final List<OrderFile> files;
   final PrintSpec spec;
   final double price;
@@ -77,6 +81,7 @@ class Order {
     required this.id,
     required this.customer,
     required this.phone,
+    this.customerUid,
     required this.files,
     required this.spec,
     required this.price,
@@ -130,6 +135,49 @@ class Service {
 }
 
 class ShopStore extends ChangeNotifier {
+  Future<void> _notifyAdmins(Order o) async {
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: 'admin')
+        .get();
+    for (final doc in snap.docs) {
+      final token = doc.data()['fcmToken'] as String?;
+      if (token == null) continue;
+      await PushSender.send(
+        token: token,
+        title: 'New order received',
+        body: 'Order #${o.id} from ${o.customer}',
+        data: {'orderId': o.id, 'type': 'new_order'},
+      );
+    }
+  }
+
+  Future<void> _notifyCustomer(Order o, String title, String body) async {
+    final uid = o.customerUid;
+    if (uid == null) return;
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final token = doc.data()?['fcmToken'] as String?;
+    if (token == null) return;
+    await PushSender.send(token: token, title: title, body: body, data: {
+      'orderId': o.id,
+      'type': 'status_update',
+      'status': o.status.name
+    });
+  }
+
+  Future<void> _mirrorToFirestore(Order o) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return; // not signed in yet (e.g. seed data) — skip
+    await FirebaseFirestore.instance.collection('orders').doc(o.id).set({
+      'customerUid': uid,
+      'customerName': o.customer,
+      'fileName': o.fileName,
+      'status': o.status.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   String customerName = 'Customer';
   static const hoursText = 'Mon–Sat · 8:00 AM – 7:00 PM';
   static const maxFileMb = 20;
@@ -220,6 +268,7 @@ class ShopStore extends ChangeNotifier {
       id: '${++_seq}',
       customer: customerName,
       phone: '0917 123 4567',
+      customerUid: FirebaseAuth.instance.currentUser?.uid,
       files: files,
       spec: spec,
       price: total,
@@ -233,6 +282,7 @@ class ShopStore extends ChangeNotifier {
     orders.insert(0, o);
     _pushAdmin('New order #${o.id} from ${o.customer}',
         body: o.fileName, order: o);
+    _notifyAdmins(o);
     notifyListeners();
     return o;
   }
@@ -248,6 +298,15 @@ class ShopStore extends ChangeNotifier {
           : o.fileName,
       order: o,
     );
+    _notifyCustomer(
+      o,
+      s == OrderStatus.ready
+          ? 'Order #${o.id} is ready for pickup'
+          : 'Order #${o.id} is now ${s.label}',
+      s == OrderStatus.ready
+          ? 'Show your order number at the counter.'
+          : o.fileName,
+    );
     notifyListeners();
   }
 
@@ -255,6 +314,7 @@ class ShopStore extends ChangeNotifier {
     o.status = OrderStatus.rejected;
     o.rejectReason = reason;
     _push('Order #${o.id} was rejected', body: reason, order: o);
+    _notifyCustomer(o, 'Order #${o.id} was rejected', reason);
     notifyListeners();
   }
 

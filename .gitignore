@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+assets/service_account.json
+.agents
+
 # IntelliJ related
 *.iml
 *.ipr

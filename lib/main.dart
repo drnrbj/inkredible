@@ -8,10 +8,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'auth_gate.dart';
 import 'login_page.dart';
+import 'push_notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await PushNotifications.init();
   runApp(MultiProvider(
     providers: [ChangeNotifierProvider(create: (_) => ShopStore())],
     child: const InkredibleApp(),
@@ -115,6 +117,7 @@ class InkredibleApp extends StatelessWidget {
                 body: Center(child: CircularProgressIndicator()));
           }
           if (snap.data == null) return const LoginPage();
+          PushNotifications.syncToken();
           return RoleRouter(uid: snap.data!.uid);
         },
       ),
