@@ -109,34 +109,7 @@ class HomeTab extends StatelessWidget {
                 style: TextStyle(color: Colors.black54)),
           ),
         const SizedBox(height: 16),
-        AppCard(
-          child: Row(children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: s.shopOpen ? Colors.black : Colors.white,
-                border: Border.all(color: Colors.black, width: 2),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        s.shopOpen
-                            ? 'Open now'
-                            : (s.acceptingOrders ? 'Closed' : 'Orders paused'),
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const Text(ShopStore.hoursText,
-                        style: TextStyle(color: Colors.black54, fontSize: 13)),
-                  ]),
-            ),
-            const Icon(Icons.storefront_outlined),
-          ]),
-        ),
+        const ShopStatusCard(),
         const SizedBox(height: 28),
         const SectionTitle('Active orders'),
         if (active.isEmpty)

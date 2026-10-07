@@ -306,6 +306,60 @@ class StatusChip extends StatelessWidget {
   }
 }
 
+class ShopStatusCard extends StatelessWidget {
+  const ShopStatusCard({super.key});
+  @override
+  Widget build(BuildContext context) {
+    final s = context.watch<ShopStore>();
+    final open = s.shopOpen;
+    final paused = !s.acceptingOrders;
+    return AppCard(
+      dark: open,
+      padding: const EdgeInsets.all(18),
+      child: Row(children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: open ? Colors.white : Colors.black),
+          child: Icon(
+              paused
+                  ? Icons.pause
+                  : (open ? Icons.storefront : Icons.nights_stay_outlined),
+              color: open ? Colors.black : Colors.white),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+                color: open ? Colors.white : Colors.black,
+                borderRadius: BorderRadius.circular(6)),
+            child: Text(paused ? 'PAUSED' : (open ? 'OPEN NOW' : 'CLOSED'),
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                    color: open ? Colors.black : Colors.white)),
+          ),
+          const SizedBox(height: 6),
+          Text(ShopStore.hoursText,
+              style: TextStyle(
+                  fontSize: 13, color: open ? Colors.white70 : Colors.black54)),
+          if (paused)
+            const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Text('Not accepting new orders right now',
+                    style: TextStyle(fontSize: 11.5, color: Colors.black45))),
+        ])),
+      ]),
+    );
+  }
+}
+
 class StatusStepper extends StatelessWidget {
   final OrderStatus status;
   final bool inverted;
