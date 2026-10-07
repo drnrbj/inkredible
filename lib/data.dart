@@ -116,7 +116,7 @@ class Service {
 }
 
 class ShopStore extends ChangeNotifier {
-  final String customerName = 'Jay';
+  String customerName = 'Customer';
   static const hoursText = 'Mon–Sat · 8:00 AM – 7:00 PM';
   static const maxFileMb = 20;
 
@@ -125,6 +125,13 @@ class ShopStore extends ChangeNotifier {
   final notifications = <AppNotification>[];
   int get unread => notifications.where((n) => !n.read).length;
   int _seq = 1049;
+
+  void setCustomerName(String name) {
+    final n = name.trim();
+    if (n.isEmpty || n == customerName) return;
+    customerName = n;
+    notifyListeners();
+  }
 
   final services = <Service>[
     Service(id: 'p1', name: 'A4', category: 'paper', price: 1.0),
