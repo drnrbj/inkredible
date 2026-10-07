@@ -231,7 +231,8 @@ class ShopStore extends ChangeNotifier {
       notes: notes,
     );
     orders.insert(0, o);
-    _pushAdmin('New order #${o.id} from ${o.customer}', body: o.fileName, order: o);
+    _pushAdmin('New order #${o.id} from ${o.customer}',
+        body: o.fileName, order: o);
     notifyListeners();
     return o;
   }
@@ -295,29 +296,22 @@ class ShopStore extends ChangeNotifier {
     );
   }
 
-  void markRead() {
-    if (unread == 0) return;
-    for (final n in notifications) {
+  void markRead({bool admin = false}) {
+    final list = admin ? adminNotifications : notifications;
+    if ((admin ? adminUnread : unread) == 0) return;
+    for (final n in list) {
       n.read = true;
     }
     notifyListeners();
   }
 
-  void markAdminRead() {
-    if (adminUnread == 0) return;
-    for (final n in adminNotifications) {
-      n.read = true;
-    }
+  void removeNotification(AppNotification n, {bool admin = false}) {
+    (admin ? adminNotifications : notifications).remove(n);
     notifyListeners();
   }
 
-  void removeNotification(AppNotification n) {
-    notifications.remove(n);
-    notifyListeners();
-  }
-
-  void clearNotifications() {
-    notifications.clear();
+  void clearNotifications({bool admin = false}) {
+    (admin ? adminNotifications : notifications).clear();
     notifyListeners();
   }
 

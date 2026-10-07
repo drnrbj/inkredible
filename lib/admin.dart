@@ -16,7 +16,7 @@ class _AdminShellState extends State<AdminShell> {
   static const titles = ['INKREDIBLE', 'ORDERS', 'SERVICES', 'ANALYTICS'];
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: ShopAppBar(title: titles[tab]),
+        appBar: ShopAppBar(title: titles[tab], admin: true),
         body: IndexedStack(index: tab, children: const [
           OverviewTab(),
           OrdersTab(),

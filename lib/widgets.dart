@@ -45,12 +45,14 @@ class AppCard extends StatelessWidget {
 
 class ShopAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  const ShopAppBar({super.key, this.title = 'INKREDIBLE'});
+  final bool admin;
+  const ShopAppBar({super.key, this.title = 'INKREDIBLE', this.admin = false});
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
   @override
   Widget build(BuildContext context) {
-    final unread = context.watch<ShopStore>().unread;
+    final s = context.watch<ShopStore>();
+    final unread = admin ? s.adminUnread : s.unread;
     return AppBar(
       title: Text(title),
       actions: [
@@ -62,8 +64,10 @@ class ShopAppBar extends StatelessWidget implements PreferredSizeWidget {
             backgroundColor: Colors.black,
             child: const Icon(Icons.notifications_none),
           ),
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const NotificationsPage())),
+          onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => NotificationsPage(admin: admin))),
         ),
         IconButton(
           tooltip: 'Sign out',
@@ -76,22 +80,25 @@ class ShopAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key});
+  final bool admin;
+  const NotificationsPage({super.key, this.admin = false});
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  // Ids that were unread when the page opened, so they stay highlighted
-  // during this visit even though we mark everything read right away.
   late final Set<String> _fresh;
+
+  List<AppNotification> _list(ShopStore s) =>
+      widget.admin ? s.adminNotifications : s.notifications;
 
   @override
   void initState() {
     super.initState();
     final store = context.read<ShopStore>();
-    _fresh = store.notifications.where((n) => !n.read).map((n) => n.id).toSet();
-    WidgetsBinding.instance.addPostFrameCallback((_) => store.markRead());
+    _fresh = _list(store).where((n) => !n.read).map((n) => n.id).toSet();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => store.markRead(admin: widget.admin));
   }
 
   String _group(DateTime t) {
@@ -107,9 +114,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<ShopStore>();
-    final items = store.notifications;
+    final items = _list(store);
 
-    // Flatten into header strings and notification rows.
     final rows = <Object>[];
     String? last;
     for (final n in items) {
@@ -127,7 +133,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         actions: [
           if (items.isNotEmpty)
             TextButton(
-              onPressed: store.clearNotifications,
+              onPressed: () => store.clearNotifications(admin: widget.admin),
               child: const Text('Clear all',
                   style: TextStyle(color: Colors.black)),
             ),
@@ -155,7 +161,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   _NotificationTile(
                     n: n,
                     fresh: _fresh.contains(n.id),
-                    onDismissed: () => store.removeNotification(n),
+                    onDismissed: () =>
+                        store.removeNotification(n, admin: widget.admin),
                   ),
                   const Divider(height: 1),
                 ]);
