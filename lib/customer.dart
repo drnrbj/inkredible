@@ -17,7 +17,7 @@ class CustomerShell extends StatefulWidget {
 
 class _CustomerShellState extends State<CustomerShell> {
   int tab = 0;
-
+  static const titles = ['INKREDIBLE', 'SERVICES', 'HISTORY', 'PROFILE'];
   @override
   void initState() {
     super.initState();
