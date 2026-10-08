@@ -19,7 +19,7 @@ dependencies:
   firebase_storage: ^13.6.0
   google_sign_in: ^7.2.0
   firebase_messaging: ^16.7.0
-  flutter_local_notifications: ^8.2.0
+  flutter_local_notifications: ^19.5.0
   googleapis_auth: ^2.3.4
   http: ^1.6.0
 

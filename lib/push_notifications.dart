@@ -18,7 +18,7 @@ class PushNotifications {
   static const _channel = AndroidNotificationChannel(
     'order_updates',
     'Order updates',
-    'Notifications about your print order status',
+    description: 'Notifications about your print order status',
     importance: Importance.high,
   );
 
@@ -42,8 +42,13 @@ class PushNotifications {
         n.title,
         n.body,
         NotificationDetails(
-          android: AndroidNotificationDetails(_channel.id, _channel.name, _channel.description,
-              importance: Importance.high, priority: Priority.high),
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
         ),
       );
     });
