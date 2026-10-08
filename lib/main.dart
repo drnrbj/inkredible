@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'data.dart';
-import 'customer.dart';
-import 'admin.dart';
+import 'package:inkredible/data/data.dart';
+import 'package:inkredible/customer/customer.dart';
+import 'package:inkredible/admin/admin.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'auth_gate.dart';
-import 'login_page.dart';
-import 'push_notifications.dart';
+import 'package:inkredible/auth/auth_gate.dart';
+import 'package:inkredible/auth/login_page.dart';
+import 'package:inkredible/services/push_notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'widgets.dart';
+import 'package:inkredible/shared/widgets.dart';
 
 /// Shows the progress of sending a customer's PDF to the shop computer.
 Future<void> showSendToComputerDemo(BuildContext context, String fileName) {

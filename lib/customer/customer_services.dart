@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'data.dart';
-import 'widgets.dart';
-import 'customer.dart';
+import 'package:inkredible/data/data.dart';
+import 'package:inkredible/shared/widgets.dart';
+import 'package:inkredible/customer/customer.dart';
 
 class _ServicePreset {
   final String title, description;

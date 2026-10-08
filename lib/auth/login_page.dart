@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'auth_service.dart';
-import 'logo.dart';
+import 'package:inkredible/auth/auth_service.dart';
+import 'package:inkredible/shared/logo.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

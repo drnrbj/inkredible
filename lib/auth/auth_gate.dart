@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'admin.dart';
-import 'customer.dart';
-import 'loading_page.dart';
+import 'package:inkredible/admin/admin.dart';
+import 'package:inkredible/customer/customer.dart';
+import 'package:inkredible/shared/loading_page.dart';
 
 class RoleRouter extends StatelessWidget {
   final String uid;

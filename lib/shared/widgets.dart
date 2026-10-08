@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'data.dart';
+import 'package:inkredible/data/data.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'auth_actions.dart';
+import 'package:inkredible/auth/auth_actions.dart';
 
 String peso(double v) => '₱${NumberFormat('#,##0.00').format(v)}';
 

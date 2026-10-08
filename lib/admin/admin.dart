@@ -2,9 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'data.dart';
-import 'widgets.dart';
-import 'demo_transfer.dart';
+import 'package:inkredible/data/data.dart';
+import 'package:inkredible/shared/widgets.dart';
+import 'package:inkredible/admin/demo_transfer.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});

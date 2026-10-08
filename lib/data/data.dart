@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'push_sender.dart';
+import 'package:inkredible/services/push_sender.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum Role { customer, admin }
