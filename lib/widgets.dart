@@ -319,49 +319,29 @@ class ShopStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<ShopStore>();
     final open = s.shopOpen;
-    final paused = !s.acceptingOrders;
+    final label = !s.acceptingOrders ? 'Orders paused' : (open ? 'Open now' : 'Closed');
+
     return AppCard(
-      dark: open,
-      padding: const EdgeInsets.all(18),
       child: Row(children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: open ? Colors.white : Colors.black),
-          child: Icon(
-              paused
-                  ? Icons.pause
-                  : (open ? Icons.storefront : Icons.nights_stay_outlined),
-              color: open ? Colors.black : Colors.white),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-                color: open ? Colors.white : Colors.black,
-                borderRadius: BorderRadius.circular(6)),
-            child: Text(paused ? 'PAUSED' : (open ? 'OPEN NOW' : 'CLOSED'),
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                    color: open ? Colors.black : Colors.white)),
+            shape: BoxShape.circle,
+            color: open ? Colors.black : Colors.white,
+            border: Border.all(color: Colors.black, width: 1.5),
           ),
-          const SizedBox(height: 6),
-          Text(ShopStore.hoursText,
-              style: TextStyle(
-                  fontSize: 13, color: open ? Colors.white70 : Colors.black54)),
-          if (paused)
-            const Padding(
-                padding: EdgeInsets.only(top: 2),
-                child: Text('Not accepting new orders right now',
-                    style: TextStyle(fontSize: 11.5, color: Colors.black45))),
-        ])),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            const Text(ShopStore.hoursText,
+                style: TextStyle(fontSize: 12.5, color: Colors.black54)),
+          ]),
+        ),
       ]),
     );
   }
@@ -420,6 +400,10 @@ class StatusStepper extends StatelessWidget {
     ]);
   }
 }
+
+String orderTotal(Order o) => o.priceConfirmed
+    ? peso(o.price)
+    : (o.status == OrderStatus.rejected ? '—' : 'Total pending');
 
 String statusHint(OrderStatus s) => switch (s) {
       OrderStatus.pending => 'Waiting for the shop to accept your order.',

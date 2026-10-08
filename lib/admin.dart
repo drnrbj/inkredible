@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'data.dart';
 import 'widgets.dart';
+import 'demo_transfer.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -37,6 +38,17 @@ class _AdminShellState extends State<AdminShell> {
           ],
         ),
       );
+}
+
+void advanceOrder(BuildContext context, ShopStore s, Order o, OrderStatus to) {
+  final needsTotal =
+      (to == OrderStatus.ready || to == OrderStatus.done) && !o.priceConfirmed;
+  if (needsTotal) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Open the order and confirm the page count first.')));
+    return;
+  }
+  s.setStatus(o, to);
 }
 
 // ---------------------------------------------------------------- OVERVIEW
@@ -197,11 +209,11 @@ class _QueueCard extends StatelessWidget {
         ]),
         const SizedBox(height: 6),
         Text(o.fileName, overflow: TextOverflow.ellipsis),
-        Text('${o.totalPages} pages • ${o.spec.summary}',
+        Text('${o.pagesLabel} pages • ${o.spec.summary}',
             style: const TextStyle(color: Colors.black54, fontSize: 12)),
         const SizedBox(height: 8),
         Row(children: [
-          Text(peso(o.price),
+          Text(orderTotal(o),
               style: const TextStyle(fontWeight: FontWeight.w800)),
           const Spacer(),
           Text(
@@ -229,7 +241,7 @@ class _QueueCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                   style: compact,
-                  onPressed: () => s.setStatus(o, next),
+                  onPressed: () => advanceOrder(context, s, o, next),
                   child: Text('Mark ${next.label}'))),
         ],
       ]),
@@ -261,34 +273,39 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Scaffold(
       appBar: AppBar(title: Text('Order #${o.id}')),
       body: ListView(padding: const EdgeInsets.all(20), children: [
-        AppCard(
-          child: Row(children: [
-            const Icon(Icons.picture_as_pdf_outlined, size: 40),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(o.fileName,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(
-                        '${o.totalPages} pages · ${(o.sizeKb / 1024).toStringAsFixed(1)} MB',
-                        style: const TextStyle(
-                            color: Colors.black54, fontSize: 12)),
-                  ]),
-            ),
-            OutlinedButton(
-              style: compact,
-              // TODO: open the Firebase Storage download URL (url_launcher).
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content:
-                          Text('Connect Firebase Storage to open the file'))),
-              child: const Text('Open'),
-            ),
-          ]),
+        const SectionTitle('Files'),
+for (final f in o.files)
+  Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: AppCard(
+      child: Row(children: [
+        const Icon(Icons.picture_as_pdf_outlined, size: 36),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(f.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                    '${(f.sizeKb / 1024).toStringAsFixed(1)} MB${f.pages == null ? '' : ' · ${f.pages} pages'}',
+                    style: const TextStyle(
+                        color: Colors.black54, fontSize: 12)),
+              ]),
         ),
+        OutlinedButton.icon(
+          style: compact,
+          onPressed: () => showSendToComputerDemo(context, f.name),
+          icon: const Icon(Icons.computer, size: 18),
+          label: const Text('Send to PC'),
+        ),
+      ]),
+    ),
+  ),
+const SizedBox(height: 10),
+const SectionTitle('Pages & total'),
+_PagesCard(o),
         const SizedBox(height: 20),
         const SectionTitle('Print specification'),
         AppCard(
@@ -298,7 +315,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             KV('Sides', o.spec.duplex ? 'Double-sided' : 'Single-sided'),
             KV('Copies', '${o.spec.copies}'),
             KV('Finish', o.spec.finish),
-            KV('Total', peso(o.price)),
+            KV('Total', orderTotal(o)),
             KV('Customer note', o.notes.isEmpty ? '—' : o.notes),
           ]),
         ),
@@ -330,7 +347,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     DropdownMenuItem(value: st, child: Text(st.label))
                 ],
                 onChanged: (v) {
-                  if (v != null) s.setStatus(o, v);
+                  if (v != null) advanceOrder(context, s, o, v);
                 },
               ),
             ),
@@ -758,5 +775,61 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
         ]),
       ),
     ]);
+  }
+}
+
+class _PagesCard extends StatefulWidget {
+  final Order order;
+  const _PagesCard(this.order);
+  @override
+  State<_PagesCard> createState() => _PagesCardState();
+}
+
+class _PagesCardState extends State<_PagesCard> {
+  late final ctl =
+      TextEditingController(text: widget.order.pages?.toString() ?? '');
+
+  @override
+  void dispose() {
+    ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.read<ShopStore>();
+    final o = widget.order;
+    final entered = int.tryParse(ctl.text);
+    final changed = entered != null && entered > 0 && entered != o.pages;
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: ctl,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                  labelText: 'Pages per copy (all files)', isDense: true),
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton(
+            style: compact,
+            onPressed: changed ? () => s.confirmPages(o, entered) : null,
+            child: Text(o.priceConfirmed ? 'Update' : 'Confirm'),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          const Text('Total', style: TextStyle(color: Colors.black54)),
+          const Spacer(),
+          Text(orderTotal(o),
+              style:
+                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        ]),
+      ]),
+    );
   }
 }

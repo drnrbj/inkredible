@@ -59,9 +59,8 @@ class PrintSpec {
 class OrderFile {
   final String name;
   final int sizeKb;
-  final int totalPages;
-  const OrderFile(
-      {required this.name, required this.sizeKb, required this.totalPages});
+  final int? pages; // read from the PDF; null if it couldn't be read
+  const OrderFile({required this.name, required this.sizeKb, this.pages});
 }
 
 class Order {
@@ -69,9 +68,8 @@ class Order {
   final String? customerUid;
   final List<OrderFile> files;
   final PrintSpec spec;
-  final double price;
-  final bool printAll;
-  final String? pageRange;
+  int? pages; // total pages for one copy (all files); null until known
+  double price; // 0 until pages are known
   OrderStatus status;
   final DateTime createdAt;
   DateTime pickup;
@@ -84,9 +82,8 @@ class Order {
     this.customerUid,
     required this.files,
     required this.spec,
-    required this.price,
-    required this.printAll,
-    this.pageRange,
+    this.pages,
+    this.price = 0,
     required this.status,
     required this.createdAt,
     required this.pickup,
@@ -94,11 +91,13 @@ class Order {
     this.internalNotes = '',
     this.rejectReason,
   });
+  bool get priceConfirmed => pages != null;
+  String get pagesLabel =>
+      pages == null ? 'Pages not counted yet' : '$pages pages';
   bool get isActive =>
       status != OrderStatus.done && status != OrderStatus.rejected;
   String get fileName =>
       files.length == 1 ? files.first.name : '${files.length} files';
-  int get totalPages => files.fold(0, (a, f) => a + f.totalPages);
   int get sizeKb => files.fold(0, (a, f) => a + f.sizeKb);
 }
 
@@ -251,6 +250,26 @@ class ShopStore extends ChangeNotifier {
     return sheets + _rate('finish', s.finish) * s.copies;
   }
 
+  double ratePerPage(PrintSpec s) =>
+      (_rate('paper', s.paper) + _rate('color', s.color ? 'Color' : 'B&W')) *
+      (s.duplex ? 0.9 : 1.0);
+
+  double finishFee(PrintSpec s) => _rate('finish', s.finish);
+
+  /// Shop confirms or overrides the page count; recalculates the total.
+  void confirmPages(Order o, int pages) {
+    if (o.pages == pages) return;
+    final changed = o.pages != null;
+    o.pages = pages;
+    o.price = price(o.spec, pages);
+    final total = '₱${NumberFormat('#,##0.00').format(o.price)}';
+    final title =
+        'Order #${o.id} total ${changed ? 'updated' : 'confirmed'}: $total';
+    _push(title, body: '$pages pages', order: o);
+    _notifyCustomer(o, title, '$pages pages');
+    notifyListeners();
+  }
+
   // ---------- orders ----------
   List<Order> get myOrders =>
       orders.where((o) => o.customer == customerName).toList();
@@ -258,12 +277,12 @@ class ShopStore extends ChangeNotifier {
   Order placeOrder({
     required List<OrderFile> files,
     required PrintSpec spec,
-    required bool printAll,
-    String? pageRange,
     required String notes,
   }) {
     final now = DateTime.now();
-    final total = files.fold(0.0, (a, f) => a + price(spec, f.totalPages));
+    final allKnown = files.every((f) => f.pages != null);
+    final int? pages =
+        allKnown ? files.fold<int>(0, (a, f) => a + f.pages!) : null;
     final o = Order(
       id: '${++_seq}',
       customer: customerName,
@@ -271,9 +290,8 @@ class ShopStore extends ChangeNotifier {
       customerUid: FirebaseAuth.instance.currentUser?.uid,
       files: files,
       spec: spec,
-      price: total,
-      printAll: printAll,
-      pageRange: printAll ? null : pageRange,
+      pages: pages,
+      price: pages == null ? 0 : price(spec, pages),
       status: OrderStatus.pending,
       createdAt: now,
       pickup: now.add(const Duration(hours: 2)),
@@ -470,21 +488,25 @@ class ShopStore extends ChangeNotifier {
 
   // ---------- sample data ----------
   void _add(String id, String cust, String file, int pages, PrintSpec spec,
-      OrderStatus st, int minsAgo) {
-    final t = DateTime.now().subtract(Duration(minutes: minsAgo));
-    orders.add(Order(
-      id: id,
-      customer: cust,
-      phone: '09${17 + id.hashCode % 8} 555 ${1000 + id.hashCode.abs() % 9000}',
-      files: [OrderFile(name: file, sizeKb: pages * 60, totalPages: pages)],
-      spec: spec,
-      price: price(spec, pages),
-      printAll: true,
-      status: st,
-      createdAt: t,
-      pickup: t.add(const Duration(hours: 2)),
-    ));
-  }
+    OrderStatus st, int minsAgo) {
+  final t = DateTime.now().subtract(Duration(minutes: minsAgo));
+  final counted = st != OrderStatus.pending;
+  orders.add(Order(
+    id: id,
+    customer: cust,
+    phone: '09${17 + id.hashCode % 8} 555 ${1000 + id.hashCode.abs() % 9000}',
+    files: [
+      OrderFile(
+          name: file, sizeKb: pages * 60, pages: counted ? pages : null)
+    ],
+    spec: spec,
+    pages: counted ? pages : null,
+    price: counted ? price(spec, pages) : 0,
+    status: st,
+    createdAt: t,
+    pickup: t.add(const Duration(hours: 2)),
+  ));
+}
 
   void _seed() {
     _add(
@@ -564,10 +586,9 @@ class ShopStore extends ChangeNotifier {
         id: '${900 + i}',
         customer: names[r.nextInt(names.length)],
         phone: '0917 555 ${1000 + r.nextInt(9000)}',
-        files: [OrderFile(name: file, sizeKb: pages * 60, totalPages: pages)],
+        files: [OrderFile(name: file, sizeKb: pages * 60, pages: pages)], pages: pages,
         spec: spec,
         price: price(spec, pages),
-        printAll: true,
         status: rejected ? OrderStatus.rejected : OrderStatus.done,
         createdAt: t,
         pickup: t.add(const Duration(hours: 2)),
