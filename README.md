@@ -65,20 +65,6 @@ lib/
 tools/           scripts that create demo accounts and sample orders
 ```
 
-## Screenshots
-
-| Login | Customer Home | New Order |
-|---|---|---|
-| ![Login](docs/screenshots/login.png) | ![Home](docs/screenshots/customer_home.png) | ![New Order](docs/screenshots/new_order.png) |
-
-| Order History | Admin Overview | Orders Queue |
-|---|---|---|
-| ![History](docs/screenshots/history.png) | ![Overview](docs/screenshots/admin_overview.png) | ![Queue](docs/screenshots/orders_queue.png) |
-
-| Order Details | Services & Pricing | Analytics |
-|---|---|---|
-| ![Details](docs/screenshots/order_details.png) | ![Services](docs/screenshots/services.png) | ![Analytics](docs/screenshots/analytics.png) |
-
 ## Getting Started
 
 ### Requirements
