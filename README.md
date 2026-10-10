@@ -112,19 +112,3 @@ tools/           scripts that create demo accounts and sample orders
 |---|---|---|
 | Admin | admin@gmail.com | admin123 |
 | Customer | customer@gmail.com | password123 |
-
-## Known Limitations
-
-- **PDF files are not uploaded.** The app reads the page count and saves the file name and size, but the file itself stays on the phone. Firebase Storage requires a paid plan, so it was left out to keep the project free.
-- **"Send to PC" is a simulation.** It shows where the file transfer to the shop computer would happen.
-- **Notifications are sent from the app.** A production version should send them from a server (Cloud Functions).
-- **Services and pricing** are kept in the app and reset on restart. Orders and user accounts are stored in Firebase.
-- **Firestore rules are open for development.** They should be tightened before real use.
-
-## Future Work
-
-- Upload PDFs to cloud storage so the shop can download and print them
-- A web version of the admin dashboard for the shop computer
-- Move services and pricing to Firestore
-- Send notifications from a server
-- Online payment (e.g. GCash)
